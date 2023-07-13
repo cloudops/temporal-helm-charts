@@ -13,7 +13,7 @@ metadata:
     app.kubernetes.io/component: database
     app.kubernetes.io/part-of: {{ .Chart.Name }}
   annotations:
-    {{- if .Values.cassandra.enabled }}
+    {{- if .Values. mess.enabled }}
     "helm.sh/hook": post-install
     {{- else }}
     "helm.sh/hook": pre-install
@@ -39,6 +39,9 @@ spec:
       {{ include "temporal.serviceAccount" . }}
       restartPolicy: "OnFailure"
       initContainers:
+        {{- if $.Values.server.sidecarContainers }}
+        {{- toYaml $.Values.server.sidecarContainers | nindent 8 }}
+        {{- end }}
         {{- if or .Values.cassandra.enabled (eq (include "temporal.persistence.driver" (list $ "default")) "cassandra") (eq (include "temporal.persistence.driver" (list $ "visibility")) "cassandra") }}
         {{- if .Values.cassandra.enabled }}
         - name: check-cassandra-service
@@ -116,6 +119,9 @@ spec:
           []
         {{- end }}
       containers:
+        {{- if $.Values.server.sidecarContainers }}
+        {{- toYaml $.Values.server.sidecarContainers | nindent 8 }}
+        {{- end }}
         {{- range $store := (list "default" "visibility") }}
         {{- $storeConfig := index $.Values.server.config.persistence $store }}
         - name: {{ $store }}-schema
