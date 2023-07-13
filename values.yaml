@@ -274,6 +274,7 @@ admintools:
   containerSecurityContext: {}
   securityContext: {}
   podDisruptionBudget: {}
+  sidecarContainers: {}
 
 web:
   enabled: true
@@ -347,12 +348,14 @@ schema:
   setup:
     enabled: true
     backoffLimit: 100
+    createDatabase: true
   update:
     enabled: true
     backoffLimit: 100
   resources: {}
   containerSecurityContext: {}
   securityContext: {}
+  sidecarContainers: {}
 
 elasticsearch:
   enabled: true

@@ -39,9 +39,6 @@ spec:
       {{ include "temporal.serviceAccount" . }}
       restartPolicy: "OnFailure"
       initContainers:
-        {{- if $.Values.server.sidecarContainers }}
-        {{- toYaml $.Values.server.sidecarContainers | nindent 8 }}
-        {{- end }}
         {{- if or .Values.cassandra.enabled (eq (include "temporal.persistence.driver" (list $ "default")) "cassandra") (eq (include "temporal.persistence.driver" (list $ "visibility")) "cassandra") }}
         {{- if .Values.cassandra.enabled }}
         - name: check-cassandra-service
@@ -54,6 +51,7 @@ spec:
         {{- end }}
         {{- range $store := (list "default" "visibility") }}
         {{- $storeConfig := index $.Values.server.config.persistence $store }}
+        {{- if .Values.schema.setup.createDatabase }}
         {{- if eq (include "temporal.persistence.driver" (list $ $store)) "cassandra" }}
         - name: create-{{ $store }}-store
           image: "{{ $.Values.admintools.image.repository }}:{{ $.Values.admintools.image.tag }}"
@@ -83,9 +81,11 @@ spec:
             {{- end }}
         {{- end }}
         {{- end }}
+        {{- end }}
         {{- else if or (eq (include "temporal.persistence.driver" (list $ "default")) "sql") (eq (include "temporal.persistence.driver" (list $ "visibility")) "sql") }}
         {{- range $store := (list "default" "visibility") }}
         {{- $storeConfig := index $.Values.server.config.persistence $store }}
+        {{- if .Values.schema.setup.createDatabase }}
         {{- if eq (include "temporal.persistence.driver" (list $ $store)) "sql" }}
         - name: create-{{ $store }}-store
           image: "{{ $.Values.admintools.image.repository }}:{{ $.Values.admintools.image.tag }}"
@@ -115,12 +115,13 @@ spec:
             {{- end }}
         {{- end }}
         {{- end }}
+        {{- end }}
         {{- else }}
           []
         {{- end }}
       containers:
-        {{- if $.Values.server.sidecarContainers }}
-        {{- toYaml $.Values.server.sidecarContainers | nindent 8 }}
+        {{- if $.Values.schema.sidecarContainers }}
+        {{- toYaml $.Values.schema.sidecarContainers | nindent 8 }}
         {{- end }}
         {{- range $store := (list "default" "visibility") }}
         {{- $storeConfig := index $.Values.server.config.persistence $store }}
@@ -259,6 +260,9 @@ spec:
           []
         {{- end }}
       containers:
+        {{- if $.Values.schema.sidecarContainers }}
+        {{- toYaml $.Values.schema.sidecarContainers | nindent 8 }}
+        {{- end }}
         {{- range $store := (list "default" "visibility") }}
         {{- $storeConfig := index $.Values.server.config.persistence $store }}
         - name: {{ $store }}-schema
