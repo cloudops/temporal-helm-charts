@@ -35,16 +35,14 @@ Create chart name and version as used by the chart label.
 Create the name of the service account
 */}}
 {{- define "temporal.serviceAccountName" -}}
-{{ default (include "temporal.fullname" .) .Values.serviceAccount.name }}
+cloudmc
 {{- end -}}
 
 {{/*
 Define the service account as needed
 */}}
 {{- define "temporal.serviceAccount" -}}
-{{- if .Values.serviceAccount.create -}}
-serviceAccountName: {{ include "temporal.serviceAccountName" . }}
-{{- end -}}
+serviceAccountName: cloudmc
 {{- end -}}
 
 {{/*
