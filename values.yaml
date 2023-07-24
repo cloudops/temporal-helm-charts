@@ -10,6 +10,9 @@ serviceAccount:
   # Whether to create service account or not
   create: false
 
+  # Use existing service account
+  useExisting: false
+
   # Name of the service account, default: temporal.fullname
   name:
 
@@ -19,6 +22,7 @@ serviceAccount:
 server:
   enabled: true
   sidecarContainers: {}
+  sidecarEgress: false
   image:
     repository: temporalio/server
     tag: 1.21.1
@@ -274,7 +278,6 @@ admintools:
   containerSecurityContext: {}
   securityContext: {}
   podDisruptionBudget: {}
-  sidecarContainers: {}
 
 web:
   enabled: true
@@ -355,8 +358,6 @@ schema:
   resources: {}
   containerSecurityContext: {}
   securityContext: {}
-  sidecarContainers: {}
-  sidecarDelay: {}
 
 elasticsearch:
   enabled: true
