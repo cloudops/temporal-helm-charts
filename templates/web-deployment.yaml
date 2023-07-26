@@ -37,6 +37,10 @@ spec:
       {{- end }}
     spec:
       {{ include "temporal.serviceAccount" . }}
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
       volumes:
         - name: {{ .Chart.Name }}-web-config
           configMap:
