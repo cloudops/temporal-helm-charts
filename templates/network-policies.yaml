@@ -12,6 +12,12 @@ spec:
       app.kubernetes.io/name: {{ include "temporal.name" . }}
   egress:
   - {}
+  ingress:
+  - from :
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: temporal
   policyTypes:
   - Egress
+  - Ingress
 {{- end }}
