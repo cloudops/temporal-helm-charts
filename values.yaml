@@ -10,6 +10,9 @@ serviceAccount:
   # Whether to create service account or not
   create: false
 
+  # Use existing service account
+  useExisting: false
+
   # Name of the service account, default: temporal.fullname
   name:
 
@@ -19,6 +22,7 @@ serviceAccount:
 server:
   enabled: true
   sidecarContainers: {}
+  sidecarEgress: false
   image:
     repository: temporalio/server
     tag: 1.21.1
@@ -347,6 +351,7 @@ schema:
   setup:
     enabled: true
     backoffLimit: 100
+    createDatabase: true
   update:
     enabled: true
     backoffLimit: 100

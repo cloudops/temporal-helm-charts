@@ -49,6 +49,7 @@ spec:
           imagePullPolicy: {{ .Values.cassandra.image.pullPolicy }}
           command: ['sh', '-c', 'until cqlsh {{ include "cassandra.host" $ }} {{ .Values.cassandra.config.ports.cql }} -e "SHOW VERSION"; do echo waiting for cassandra to start; sleep 1; done;']
         {{- end }}
+        {{- if .Values.schema.setup.createDatabase }}
         {{- range $store := (list "default" "visibility") }}
         {{- $storeConfig := index $.Values.server.config.persistence $store }}
         {{- if eq (include "temporal.persistence.driver" (list $ $store)) "cassandra" }}
@@ -80,7 +81,9 @@ spec:
             {{- end }}
         {{- end }}
         {{- end }}
+        {{- end }}
         {{- else if or (eq (include "temporal.persistence.driver" (list $ "default")) "sql") (eq (include "temporal.persistence.driver" (list $ "visibility")) "sql") }}
+        {{- if .Values.schema.setup.createDatabase }}
         {{- range $store := (list "default" "visibility") }}
         {{- $storeConfig := index $.Values.server.config.persistence $store }}
         {{- if eq (include "temporal.persistence.driver" (list $ $store)) "sql" }}
@@ -112,16 +115,23 @@ spec:
             {{- end }}
         {{- end }}
         {{- end }}
+        {{- end }}
         {{- else }}
           []
         {{- end }}
       containers:
+        {{- if $.Values.schema.sidecarContainers }}
+        {{- toYaml $.Values.schema.sidecarContainers | nindent 8 }}
+        {{- end }}
         {{- range $store := (list "default" "visibility") }}
         {{- $storeConfig := index $.Values.server.config.persistence $store }}
         - name: {{ $store }}-schema
           image: "{{ $.Values.admintools.image.repository }}:{{ $.Values.admintools.image.tag }}"
           imagePullPolicy: {{ $.Values.admintools.image.pullPolicy }}
-          command: ['temporal-{{ include "temporal.persistence.driver" (list $ $store) }}-tool', 'setup-schema', '-v', '0.0']
+          command: 
+            - /bin/sh
+            - -c
+            - sleep 5; temporal-{{ include "temporal.persistence.driver" (list $ $store) }}-tool setup-schema -v 0.0; touch /usr/share/pod/done-{{ $store }}
           env:
             {{- if eq (include "temporal.persistence.driver" (list $ $store)) "cassandra" }}
             - name: CASSANDRA_HOST
@@ -170,6 +180,9 @@ spec:
               {{- end }}
             {{- end }}
             {{- end }}
+          volumeMounts:
+          - mountPath: /usr/share/pod
+            name: tmp-pod
         {{- end }}
           {{- with .Values.schema.resources }}
           resources:
@@ -199,6 +212,9 @@ spec:
       tolerations:
       {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+      - emptyDir: {}
+        name: tmp-pod
 ---
 {{- end }}
 {{- if .Values.schema.update.enabled }}
@@ -253,22 +269,28 @@ spec:
           []
         {{- end }}
       containers:
+        {{- if $.Values.schema.sidecarContainers }}
+        {{- toYaml $.Values.schema.sidecarContainers | nindent 8 }}
+        {{- end }}
         {{- range $store := (list "default" "visibility") }}
         {{- $storeConfig := index $.Values.server.config.persistence $store }}
         - name: {{ $store }}-schema
           image: "{{ $.Values.admintools.image.repository }}:{{ $.Values.admintools.image.tag }}"
           imagePullPolicy: {{ $.Values.admintools.image.pullPolicy }}
+          command: 
+          - /bin/sh
+          - -c
           {{- if eq (include "temporal.persistence.driver" (list $ $store)) "cassandra" }}
-          command: ['temporal-{{ include "temporal.persistence.driver" (list $ $store) }}-tool', 'update-schema', '--schema-dir', '/etc/temporal/schema/cassandra/{{ include "temporal.persistence.schema" $store }}/versioned']
+          - sleep 5;temporal-{{ include "temporal.persistence.driver" (list $ $store) }}-tool update-schema --schema-dir /etc/temporal/schema/cassandra/{{ include "temporal.persistence.schema" $store }}/versioned; touch /usr/share/pod/done-{{ $store }}
           {{- else if eq (include "temporal.persistence.sql.driver" (list $ $store)) "mysql" }}
-          command: ['temporal-{{ include "temporal.persistence.driver" (list $ $store) }}-tool', 'update-schema', '--schema-dir', '/etc/temporal/schema/mysql/v57/{{ include "temporal.persistence.schema" $store }}/versioned']
+          - sleep 5;temporal-{{ include "temporal.persistence.driver" (list $ $store) }}-tool update-schema --schema-dir /etc/temporal/schema/mysql/v57/{{ include "temporal.persistence.schema" $store }}/versioned; touch /usr/share/pod/done-{{ $store }}
           {{- else if eq (include "temporal.persistence.sql.driver" (list $ $store)) "mysql8" }}
-          command: ['temporal-{{ include "temporal.persistence.driver" (list $ $store) }}-tool', 'update-schema', '--schema-dir', '/etc/temporal/schema/mysql/v8/{{ include "temporal.persistence.schema" $store }}/versioned']
+          - sleep 5;temporal-{{ include "temporal.persistence.driver" (list $ $store) }}-tool update-schema --schema-dir /etc/temporal/schema/mysql/v8/{{ include "temporal.persistence.schema" $store }}/versioned; touch /usr/share/pod/done-{{ $store }}
           {{- else if eq (include "temporal.persistence.sql.driver" (list $ $store)) "postgres" }}
-          command: ['temporal-{{ include "temporal.persistence.driver" (list $ $store) }}-tool', 'update-schema', '--schema-dir', '/etc/temporal/schema/postgresql/v96/{{ include "temporal.persistence.schema" $store }}/versioned']
+          - sleep 5;temporal-{{ include "temporal.persistence.driver" (list $ $store) }}-tool update-schema --schema-dir /etc/temporal/schema/postgresql/v96/{{ include "temporal.persistence.schema" $store }}/versioned; touch /usr/share/pod/done-{{ $store }}
           {{- else if eq (include "temporal.persistence.sql.driver" (list $ $store)) "postgres12" }}
-          command: ['temporal-{{ include "temporal.persistence.driver" (list $ $store) }}-tool', 'update-schema', '--schema-dir', '/etc/temporal/schema/postgresql/v12/{{ include "temporal.persistence.schema" $store }}/versioned']
-          {{- end }}
+          - sleep 5;temporal-{{ include "temporal.persistence.driver" (list $ $store) }}-tool update-schema --schema-dir /etc/temporal/schema/postgresql/v12/{{ include "temporal.persistence.schema" $store }}/versioned; touch /usr/share/pod/done-{{ $store }}
+]          {{- end }}
           env:
             {{- if eq (include "temporal.persistence.driver" (list $ $store)) "cassandra" }}
             - name: CASSANDRA_HOST
@@ -317,6 +339,9 @@ spec:
               {{- end }}
             {{- end }}
             {{- end }}
+          volumeMounts:
+          - mountPath: /usr/share/pod
+            name: tmp-pod
         {{- end }}
           {{- with .Values.schema.resources }}
           resources:
@@ -342,6 +367,9 @@ spec:
       tolerations:
       {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+      - emptyDir: {}
+        name: tmp-pod
 ---
 {{- end }}
 {{- if and (or $.Values.elasticsearch.enabled $.Values.elasticsearch.external) .Values.schema.setup.enabled }}

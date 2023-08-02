@@ -1,0 +1,23 @@
+{{- if $.Values.server.sidecarEgress }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-{{ include "temporal.name" . }}-egress
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "-10"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "temporal.name" . }}
+  egress:
+  - {}
+  ingress:
+  - from :
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: temporal
+  policyTypes:
+  - Egress
+  - Ingress
+{{- end }}

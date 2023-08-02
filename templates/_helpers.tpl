@@ -42,10 +42,9 @@ Create the name of the service account
 Define the service account as needed
 */}}
 {{- define "temporal.serviceAccount" -}}
-{{- if .Values.serviceAccount.create -}}
+{{- if or .Values.serviceAccount.create .Values.serviceAccount.useExisting -}}
 serviceAccountName: {{ include "temporal.serviceAccountName" . }}
-{{- end -}}
-{{- end -}}
+{{- end -}}{{- end -}}
 
 {{/*
 Create a default fully qualified component name from the full app name and a component name.
